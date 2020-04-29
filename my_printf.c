@@ -17,6 +17,23 @@ int my_printf(char * restrict format, ...)
         }
     }
 
+    for (size_t i = 1; i < strlen(format); ++i)
+    {
+        if (format[i - 1] == '%')
+        {
+            if ( (format[i] != 'd') &&
+                 (format[i] != 'o') &&
+                 (format[i] != 'u') &&
+                 (format[i] != 'x') &&
+                 (format[i] != 's') &&
+                 (format[i] != 'c') &&
+                 (format[i] != 'p') )
+            {
+                return 0;
+            }
+        }
+    }
+
     va_list ap;
     int d, count = 0;
     char c, *s;
