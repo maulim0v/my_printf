@@ -6,17 +6,123 @@
 #include <limits.h>
 #include <stdlib.h>
 
-int my_printf(char * restrict format, ...)
+int global_count = 0;
+
+void my_write(int input)
 {
-    int count_args = 0;
-    for (size_t i = 0; i < strlen(format); ++i)
+    ++global_count;
+    write(STDOUT_FILENO,&input,1);
+}
+
+void my_str_write(char * input)
+{
+    if (input == NULL)
     {
-        if (format[i] == '%')
+        my_str_write("(null)");
+    }
+    else 
+    {
+        for (int i = 0; i < strlen(input); ++i)
         {
-            ++count_args;
-        }
+            my_write(input[i]);
+        }    
+    }
+}
+
+void my_str_write_reverse(char * input)
+{
+    if (input == NULL)
+    {
+        my_str_write("(null)");
+    }
+    else 
+    {
+        for (int i = strlen(input) - 1; i > -1; --i)
+        {
+            my_write(input[i]);
+        }    
+    }
+}
+
+void my_print_number_base(bool is_negative, unsigned number)
+{
+    if (is_negative == true)
+    {
+        my_write(45);
     }
 
+    int len = 1;
+    unsigned copy_number = number;
+    copy_number /= 10U;
+    while (copy_number > 0)
+    {
+        ++len;
+        copy_number /= 10U;
+    }
+
+    int print_digit;
+    while (len > 0)
+    {
+        unsigned power_10 = 1;
+        for (int j = 1; j < len; ++j)
+        {
+            power_10 *= 10;
+        }
+
+        print_digit = ( number / power_10 ) % 10 + 48;
+        my_write(print_digit);
+        --len;
+    }
+}
+
+char * my_hex(long unsigned number)
+{
+    char * hex = (char*)malloc(999);
+
+    int ind = 0;
+    while (number > 0)
+    {
+        long unsigned rem = number % (long unsigned)16;
+
+        if (rem >= 0 && rem <=9)
+        {
+            hex[ind++] = (int)rem + 48;
+        }
+        else if (rem == 10)
+        {
+            hex[ind++] = 'a';
+        }
+        else if (rem == 11)
+        {
+            hex[ind++] = 'b';
+        }
+        else if (rem == 12)
+        {
+            hex[ind++] = 'c';
+        }
+        else if (rem == 13)
+        {
+            hex[ind++] = 'd';
+        }
+        else if (rem == 14)
+        {
+            hex[ind++] = 'e';
+        }
+        else if (rem == 15)
+        {
+            hex[ind++] = 'f';
+        }
+        
+        number /= (long unsigned)16;
+    }
+
+    hex[ind] = '\0';
+
+    return hex;
+}
+
+int my_printf(char * restrict format, ...)
+{
     for (size_t i = 1; i < strlen(format); ++i)
     {
         if (format[i - 1] == '%')
@@ -44,104 +150,27 @@ int my_printf(char * restrict format, ...)
 
     for (size_t i = 0; i < strlen(format); ++i)
     {
-        if (i == 0 && format[i] != '%')
+        if (i == 0)
         {
-            ++count;
-            write(STDOUT_FILENO,&format[i],1); 
+            if (format[i] != '%')
+            {
+                my_write(format[i]);
+            }
+
             continue;
         }
 
         if (format[i-1] == '%' && format[i] == 'd')
         {
             d = va_arg(ap, int);
-
-            bool neg = false;
-            if (d < 0)
-            {
-                neg = true;
-            }
-
-            if (neg == true)
-            {
-                d = -d;
-            }
-
-            int len_d = 1;
-            int hyphen = 45;
-            int copy_d = d;
-            copy_d /= 10;
-            while (copy_d > 0)
-            {
-                ++len_d;
-                copy_d /= 10;
-            }
-            
-            if (neg == true)
-            {             
-                ++count;   
-                write(STDOUT_FILENO,&hyphen,1); 
-            }
-
-            int print_digit;
-            while (len_d > 0)
-            {
-                if (len_d == 1)
-                {
-                    print_digit = d % 10 + 48;
-                    ++count;
-                    write(STDOUT_FILENO,&print_digit,1); 
-                    break;
-                }
-
-                int power_10 = 1;
-                for (int j = 1; j < len_d; ++j)
-                {
-                    power_10 *= 10;
-                }
-
-                print_digit = ( d / power_10 ) % 10 + 48;
-                ++count;
-                write(STDOUT_FILENO,&print_digit,1); 
-                --len_d;
-            }
+            const bool is_negative = d < 0;
+            d = is_negative ? -d : d;
+            my_print_number_base(is_negative, (unsigned)d);
         }
         else if (format[i-1]=='%' && format[i] == 'u')
         {
             u = va_arg(ap, unsigned);
-
-            int len_u = 1;
-            int hyphen = 45;
-            unsigned copy_u = u;
-            copy_u /= 10;
-            while (copy_u > 0)
-            {
-                ++len_u;
-                copy_u /= 10;
-            }
-
-            int print_digit;
-            while (len_u > 0)
-            {
-                if (len_u == 1)
-                {
-                    print_digit = u % 10 + 48;
-                    ++count;
-                    write(STDOUT_FILENO,&print_digit,1); 
-                    break;
-                }
-
-                unsigned power_10 = 1;
-                for (int j = 1; j < len_u; ++j)
-                {
-                    power_10 *= 10;
-                }
-
-                print_digit = (int)(u / power_10 % 10) + 48;
-                ++count;
-                write(STDOUT_FILENO,&print_digit,1); 
-
-                --len_u;
-            }
+            my_print_number_base(false, u);
         }
         else if (format[i-1]=='%' && format[i] == 'o')
         {
@@ -152,218 +181,68 @@ int my_printf(char * restrict format, ...)
             unsigned octal_convert = u;
             while (octal_convert > 0)
             {
-                unsigned rem = octal_convert % 8;
-                unsigned power_10 = 1;
-                for (int j = 1; j < count_octal; ++j)
+                unsigned rem = octal_convert % 8U;
+                unsigned power_10 = 1U;
+                for (unsigned j = 1U; j < count_octal; ++j)
                 {
-                    power_10 *= 10;
+                    power_10 *= 10U;
                 }
                 sum += rem * power_10;
-                octal_convert /= 8;
+                octal_convert /= 8U;
                 ++count_octal;
             }
-
-            u = sum;
-
-            int len_u = 1;
-            int hyphen = 45;
-            unsigned copy_u = u;
-            copy_u /= 10;
-            while (copy_u > 0)
-            {
-                ++len_u;
-                copy_u /= 10;
-            }
-
-            int print_digit;
-            while (len_u > 0)
-            {
-                if (len_u == 1)
-                {
-                    print_digit = u % 10 + 48;
-                    ++count;
-                    write(STDOUT_FILENO,&print_digit,1); 
-                    break;
-                }
-
-                unsigned power_10 = 1;
-                for (int j = 1; j < len_u; ++j)
-                {
-                    power_10 *= 10;
-                }
-
-                print_digit = (int)(u / power_10 % 10) + 48;
-                ++count;
-                write(STDOUT_FILENO,&print_digit,1); 
-
-                --len_u;
-            }
+            my_print_number_base(false, sum);
         }
         else if (format[i-1]=='%' && format[i] == 'x')
         {
             u = va_arg(ap, unsigned);
-
-            char * hex = (char*)malloc(999);
-
-            unsigned ind = 0U;
-            unsigned hex_convert = u;
-            while (hex_convert > 0)
-            {
-                unsigned rem = hex_convert % 16;
-
-                if (rem >= 0 && rem <=9)
-                {
-                    hex[ind++] = rem + 48;
-                }
-                else if (rem == 10)
-                {
-                    hex[ind++] = 'a';
-                }
-                else if (rem == 11)
-                {
-                    hex[ind++] = 'b';
-                }
-                else if (rem == 12)
-                {
-                    hex[ind++] = 'c';
-                }
-                else if (rem == 13)
-                {
-                    hex[ind++] = 'd';
-                }
-                else if (rem == 14)
-                {
-                    hex[ind++] = 'e';
-                }
-                else if (rem == 15)
-                {
-                    hex[ind++] = 'f';
-                }
-                
-                hex_convert /= 16;
-            }
-
-            hex[ind] = '\0';
-
-            for (int i = strlen(hex) - 1; i >= 0; --i)
-            {
-                ++count;
-                write(STDOUT_FILENO,&hex[i],1);
-            }
-
+            char * hex = my_hex( (long unsigned) u );
+            my_str_write_reverse(hex);
             free(hex);
         }
         else if (format[i-1]=='%' && format[i] == 'p')
         {
             p = va_arg(ap, void *);
-
             if (p == NULL)
             {
-                char * nil = "(nil)";
-                for (int i = 0; i < strlen(nil); ++i)
-                {
-                    ++count;
-                    write(STDOUT_FILENO,&nil[i],1);
-                }
+                my_str_write("(nil)");
             }
             else 
             {
-                long unsigned p_lu = (long unsigned)p;
-                char * hex = (char*)malloc(999);
-
-                int ind = 0;
-                long unsigned hex_convert = p_lu;
-                while (hex_convert > 0)
-                {
-                    long unsigned rem = hex_convert % (long unsigned)16;
-
-                    if (rem >= 0 && rem <=9)
-                    {
-                        hex[ind++] = (int)rem + 48;
-                    }
-                    else if (rem == 10)
-                    {
-                        hex[ind++] = 'a';
-                    }
-                    else if (rem == 11)
-                    {
-                        hex[ind++] = 'b';
-                    }
-                    else if (rem == 12)
-                    {
-                        hex[ind++] = 'c';
-                    }
-                    else if (rem == 13)
-                    {
-                        hex[ind++] = 'd';
-                    }
-                    else if (rem == 14)
-                    {
-                        hex[ind++] = 'e';
-                    }
-                    else if (rem == 15)
-                    {
-                        hex[ind++] = 'f';
-                    }
-                    
-                    hex_convert /= 16;
-                }
-
-                hex[ind] = '\0';
-
-                char * ex = "0x";
-                for (int i = 0; i < strlen(ex); ++i)
-                {
-                    ++count;
-                    write(STDOUT_FILENO,&ex[i],1);
-                }
-
-                for (int i = strlen(hex) - 1; i >= 0; --i)
-                {
-                    ++count;
-                    write(STDOUT_FILENO,&hex[i],1);
-                }
-
+                char * hex = my_hex( (long unsigned) p );                
+                my_str_write("0x");
+                my_str_write_reverse(hex);
                 free(hex);
             }
         }
         else if (format[i-1]=='%' && format[i] == 's')
         {
             s = va_arg(ap, char *);
-            while (*s != '\0')
-            {
-                ++count;
-                write(STDOUT_FILENO,&(*s),1);
-                ++s;
-            }            
+            my_str_write(s);          
         }
         else if (format[i-1]=='%' && format[i] == 'c')
         {
             c = (char) va_arg(ap, int);
-            ++count;
-            write(STDOUT_FILENO,&c,1);
+            my_write(c);
         }
         else if (format[i] != '%')
         {
-            ++count;
-            write(STDOUT_FILENO,&format[i],1); 
+            my_write(format[i]); 
         }
     }    
     va_end(ap);
 
-    return count;
+    return global_count;
 }
 
+// int main( int argc, const char* argv[] )
+// {
+//     int ac = 43;
 
-int main( int argc, const char* argv[] )
-{
-    char * a = (char*)malloc(1980);
+// 	int apple = printf("%p!\n", &ac);
+//     printf("\n%d\n", apple);
 
-	int apple = printf( "Hello %d %u what: %s %c %o %x %p", -123456 , 2U, "Apppleee-bee", 't', 23, 54, a);
-    printf("\n%d\n", apple);
+//     apple = my_printf("%p!\n", &ac);
+//     printf("\n%d\n", apple);
 
-    apple = my_printf( "Hello %d %u what: %s %c %o %x %p", -123456 , 2U, "Apppleee-bee", 't', 23, 54, a);
-    printf("\n%d\n", apple);
-
-    free(a);
-}
+// }
