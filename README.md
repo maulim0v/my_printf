@@ -5,8 +5,6 @@ The **my_printf()** function is very simple implementation of <stdio.h> library 
 
 The format for the **my_printf()** function is assumed to be ordinary characters and '%' character followed by one of the flags specified below. After the '%' character, one of the following should appear:
 
-* doux The int (or appropriate variant) argument is converted to signed decimal (d). unsigned octal (o), unsigned decimal (u), unsigned hexadecimal (x).
-
 * d Signed decimal
 * o Unsigned octal
 * u Unsigned decimal
